@@ -1,36 +1,101 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, Mail, Lock, ArrowLeft } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Card } from '../components/ui/card';
-import { Separator } from '../components/ui/separator';
-import { useAuth } from '../contexts/AuthContext';
-import ThemeToggle from '../components/ThemeToggle';
+import { useState, FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Leaf, Mail, Lock, ArrowLeft } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Card } from "../components/ui/card";
+import { Separator } from "../components/ui/separator";
+import { useAuth } from "../contexts/AuthContext";
+import ThemeToggle from "../components/ThemeToggle";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await login(email, password);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
-    // Mock Google login
-    console.log('Google login clicked');
+    const clientId = (import.meta as any)?.env?.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      console.error("VITE_GOOGLE_CLIENT_ID is not set");
+      alert(
+        "Google Client ID is not configured. Ask the admin to set VITE_GOOGLE_CLIENT_ID."
+      );
+      return;
+    }
+
+    const loadScript = (): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (
+          window.google &&
+          window.google.accounts &&
+          window.google.accounts.id
+        ) {
+          return resolve();
+        }
+        const existing = document.querySelector(
+          "script[data-google-identity]"
+        ) as HTMLScriptElement | null;
+        if (existing) {
+          existing.addEventListener("load", () => resolve());
+          existing.addEventListener("error", () =>
+            reject(new Error("Failed to load Google script"))
+          );
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.setAttribute("data-google-identity", "1");
+        script.onload = () => resolve();
+        script.onerror = () =>
+          reject(new Error("Failed to load Google script"));
+        document.head.appendChild(script);
+      });
+    };
+
+    loadScript()
+      .then(() => {
+        try {
+          window.google!.accounts.id.initialize({
+            client_id: clientId,
+            callback: async (resp) => {
+              if (resp.credential) {
+                try {
+                  await loginWithGoogle(resp.credential);
+                  navigate("/dashboard");
+                } catch (err) {
+                  console.error("Google login failed", err);
+                }
+              } else {
+                console.error("No credential returned from Google");
+              }
+            },
+          });
+          // Prompt shows a One Tap dialog; on a click this should open the consent
+          window.google!.accounts.id.prompt();
+        } catch (err) {
+          console.error("Error initializing Google Identity Services", err);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load Google Identity Services", err);
+      });
   };
 
   return (
@@ -43,7 +108,9 @@ export default function LoginPage() {
               <div className="rounded-full bg-green-500 p-2">
                 <Leaf className="h-5 w-5 text-white" />
               </div>
-              <span className="font-semibold text-green-900 dark:text-green-100">CDI</span>
+              <span className="font-semibold text-green-900 dark:text-green-100">
+                CDI
+              </span>
             </Link>
             <div className="flex items-center gap-2">
               <ThemeToggle />
@@ -66,7 +133,9 @@ export default function LoginPage() {
               <div className="inline-flex items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 p-3 mb-4">
                 <Leaf className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
-              <h1 className="text-green-900 dark:text-green-100">Welcome Back</h1>
+              <h1 className="text-green-900 dark:text-green-100">
+                Welcome Back
+              </h1>
               <p className="text-neutral-600 dark:text-neutral-400">
                 Login to your account to continue
               </p>
@@ -74,7 +143,10 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm mb-2 text-neutral-700 dark:text-neutral-300">
+                <label
+                  htmlFor="email"
+                  className="block text-sm mb-2 text-neutral-700 dark:text-neutral-300"
+                >
                   Email Address
                 </label>
                 <div className="relative">
@@ -92,7 +164,10 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm mb-2 text-neutral-700 dark:text-neutral-300">
+                <label
+                  htmlFor="password"
+                  className="block text-sm mb-2 text-neutral-700 dark:text-neutral-300"
+                >
                   Password
                 </label>
                 <div className="relative">
@@ -110,13 +185,20 @@ export default function LoginPage() {
               </div>
 
               <div className="flex items-center justify-end">
-                <Link to="/reset-password" className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300">
+                <Link
+                  to="/reset-password"
+                  className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
+                >
                   Forgot password?
                 </Link>
               </div>
 
-              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
-                {loading ? 'Logging in...' : 'Login'}
+              <Button
+                type="submit"
+                className="w-full bg-green-600 hover:bg-green-700"
+                disabled={loading}
+              >
+                {loading ? "Logging in..." : "Login"}
               </Button>
             </form>
 
@@ -155,8 +237,11 @@ export default function LoginPage() {
 
             <div className="text-center">
               <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                Don't have an account?{' '}
-                <Link to="/signup" className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300">
+                Don't have an account?{" "}
+                <Link
+                  to="/signup"
+                  className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
+                >
                   Sign up
                 </Link>
               </p>
