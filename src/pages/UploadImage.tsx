@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { uploadImage } from '../api';
 import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -11,6 +12,8 @@ export default function UploadImage() {
   const [fileName, setFileName] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [dragActive, setDragActive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -76,9 +79,32 @@ export default function UploadImage() {
     }
   };
 
-  const handleAnalyze = () => {
-    // Navigate to dashboard with the image
-    navigate('/dashboard');
+  const handleAnalyze = async () => {
+    if (!selectedImage || !fileName) return;
+    setLoading(true);
+    setError('');
+    setResult(null);
+    try {
+      // Convert base64 to File object if needed
+      const arr = selectedImage.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const file = new File([u8arr], fileName, { type: mime });
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await uploadImage(formData);
+      setResult(res.data);
+      // Optionally navigate or show result
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Image analysis failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

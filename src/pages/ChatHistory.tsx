@@ -3,16 +3,28 @@ import { MessageSquare, Clock } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import Header from '../components/layout/Header';
-import { ChatProvider, useChat } from '../contexts/ChatContext';
+import { ChatProvider } from '../contexts/ChatContext';
+import { getHistory } from '../api';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 function ChatHistoryContent() {
-  const { sessions } = useChat();
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setLoading(true);
+    setError('');
+    getHistory()
+      .then(res => setSessions(res.data))
+      .catch(err => setError(err.response?.data?.message || 'Failed to fetch history'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const formatDate = (date: Date) => {
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffTime = Math.abs(now.getTime() - new Date(date).getTime());
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
@@ -22,7 +34,7 @@ function ChatHistoryContent() {
     } else if (diffDays < 7) {
       return `${diffDays} days ago`;
     } else {
-      return date.toLocaleDateString();
+      return new Date(date).toLocaleDateString();
     }
   };
 

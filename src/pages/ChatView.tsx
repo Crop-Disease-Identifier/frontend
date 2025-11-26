@@ -5,6 +5,7 @@ import { Card } from '../components/ui/card';
 import { Textarea } from '../components/ui/textarea';
 import Header from '../components/layout/Header';
 import { ChatProvider, useChat, Message } from '../contexts/ChatContext';
+import { sendChat } from '../api';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { useEffect, useState, useRef } from 'react';
 import CameraCapture from '../components/CameraCapture';
@@ -16,6 +17,8 @@ function ChatViewContent() {
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -42,30 +45,53 @@ function ChatViewContent() {
 
   const handleSendMessage = async () => {
     if (!selectedImage && !inputText.trim()) return;
-
-    if (inputText.trim()) {
-      const textMessage: Message = {
-        id: Date.now().toString(),
-        type: 'user',
-        text: inputText,
-        timestamp: new Date(),
-      };
-      addMessage(textMessage);
-      setInputText('');
+    setLoading(true);
+    setError('');
+    try {
+      let payload: any = {};
+      if (inputText.trim()) payload.message = inputText;
+      if (selectedImage) {
+        // Convert base64 to File object if needed
+        const arr = selectedImage.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const file = new File([u8arr], 'chat-image.png', { type: mime });
+        const formData = new FormData();
+        formData.append('image', file);
+        if (inputText.trim()) formData.append('message', inputText);
+        const res = await sendChat(formData);
+        addMessage({
+          id: Date.now().toString(),
+          type: 'user',
+          text: inputText,
+          image: selectedImage,
+          timestamp: new Date(),
+        });
+        addMessage(res.data);
+        setInputText('');
+        // Don't clear the image - keep it visible
+      } else {
+        const res = await sendChat(payload);
+        addMessage({
+          id: Date.now().toString(),
+          type: 'user',
+          text: inputText,
+          timestamp: new Date(),
+        });
+        addMessage(res.data);
+        setInputText('');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to send message');
+    } finally {
+      setLoading(false);
+      setTimeout(scrollToBottom, 100);
     }
-
-    if (selectedImage) {
-      const imageMessage: Message = {
-        id: Date.now().toString(),
-        type: 'user',
-        image: selectedImage,
-        timestamp: new Date(),
-      };
-      addMessage(imageMessage);
-      // Don't clear the image - keep it visible
-    }
-
-    setTimeout(scrollToBottom, 100);
   };
 
   if (!currentSession) {

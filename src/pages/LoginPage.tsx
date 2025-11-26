@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { useAuth } from '../contexts/AuthContext';
+import { getGoogleUrl } from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 
 export default function LoginPage() {
@@ -28,9 +29,14 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    // Mock Google login
-    console.log('Google login clicked');
+  const handleGoogleLogin = async () => {
+    try {
+      const res = await getGoogleUrl();
+      window.location.href = res.data.url;
+    } catch (err) {
+      // Optionally show error to user
+      console.error('Google OAuth error', err);
+    }
   };
 
   return (
