@@ -4,7 +4,7 @@ const BASE_URL = 'https://backend-production-4c9e.up.railway.app/'; // Change to
 
 const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,
+  withCredentials: false, // Changed to false to avoid CORS issues with wildcard origins
 });
 
 // Token handling

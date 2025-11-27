@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userRes.data);
       setIsAuthenticated(true);
     } catch (err: any) {
+      console.error('Login error details:', err);
       let errorMessage = err.response?.data?.message || err.message || 'Login failed';
       if (err.message === 'Network Error') {
         errorMessage = 'Unable to connect to the server. Please check your internet connection or try again later.';
