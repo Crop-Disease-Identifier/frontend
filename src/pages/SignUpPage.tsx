@@ -4,6 +4,7 @@ import { Leaf, Mail, Lock, ArrowLeft, User } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
 import { Separator } from '../components/ui/separator';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
@@ -14,7 +15,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, error } = useAuth();
 
   const handleGoogleSignUp = () => {
     // Mock Google sign up
@@ -73,6 +74,12 @@ export default function SignUpPage() {
                 Sign up to start identifying plant diseases
               </p>
             </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

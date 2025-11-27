@@ -14,6 +14,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle 200 OK with error in body
+api.interceptors.response.use(
+  (response) => {
+    if (response.data && response.data.error) {
+      return Promise.reject(new Error(response.data.error));
+    }
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // AUTH
 export const signup = (data) => api.post('/auth/signup', data);
 export const login = (data) => api.post('/auth/login', data);

@@ -59,9 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userRes.data);
       setIsAuthenticated(true);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+      let errorMessage = err.response?.data?.message || err.message || 'Login failed';
+      if (err.message === 'Network Error') {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection or try again later.';
+      }
+      setError(errorMessage);
       setIsAuthenticated(false);
       setUser(null);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -77,9 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userRes.data);
       setIsAuthenticated(true);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Signup failed');
+      let errorMessage = err.response?.data?.message || err.message || 'Signup failed';
+      if (err.message === 'Network Error') {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection or try again later.';
+      }
+      setError(errorMessage);
       setIsAuthenticated(false);
       setUser(null);
+      throw err;
     } finally {
       setLoading(false);
     }
