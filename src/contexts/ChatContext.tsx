@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
+import { uploadImage } from '../api';
 
 export interface Message {
   id: string;
@@ -80,64 +81,47 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   };
 
   const analyzeImage = async (imageUrl: string) => {
-    // Mock AI analysis
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const mockDiagnoses = [
-      {
-        disease: 'Early Blight',
-        symptoms: [
-          'Dark brown spots with concentric rings on older leaves',
-          'Yellowing around the spots',
-          'Premature leaf drop'
-        ],
-        treatment: [
-          'Remove and destroy infected plant parts',
-          'Apply copper-based fungicide every 7-10 days',
-          'Ensure proper spacing for air circulation',
-          'Water plants at the base to keep foliage dry'
-        ]
-      },
-      {
-        disease: 'Powdery Mildew',
-        symptoms: [
-          'White powdery coating on leaves and stems',
-          'Distorted or stunted growth',
-          'Yellowing and browning of affected areas'
-        ],
-        treatment: [
-          'Apply sulfur or neem oil spray',
-          'Improve air circulation around plants',
-          'Remove severely infected leaves',
-          'Avoid overhead watering'
-        ]
-      },
-      {
-        disease: 'Leaf Spot Disease',
-        symptoms: [
-          'Circular brown or black spots on leaves',
-          'Yellow halo around spots',
-          'Leaf wilting and premature drop'
-        ],
-        treatment: [
-          'Prune infected leaves immediately',
-          'Apply organic fungicide',
-          'Maintain proper plant spacing',
-          'Water in the morning to allow leaves to dry'
-        ]
+    try {
+      // Convert base64 to File object
+      const arr = imageUrl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
       }
-    ];
+      const file = new File([u8arr], "image.jpg", { type: mime });
 
-    const randomDiagnosis = mockDiagnoses[Math.floor(Math.random() * mockDiagnoses.length)];
+      const formData = new FormData();
+      formData.append('image', file);
 
-    const aiMessage: Message = {
-      id: Date.now().toString(),
-      type: 'ai',
-      diagnosis: randomDiagnosis,
-      timestamp: new Date(),
-    };
+      console.log("Sending image to backend for analysis...");
+      const response = await uploadImage(formData);
+      console.log("Backend analysis result:", response.data);
 
-    addMessage(aiMessage);
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        type: 'ai',
+        diagnosis: {
+          disease: response.data.predicted_class || 'Unknown Condition',
+          symptoms: response.data.symptoms || ['Analysis complete'],
+          treatment: response.data.treatment || ['Consult an expert'],
+        },
+        timestamp: new Date(),
+      };
+      addMessage(aiMessage);
+
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        type: 'ai',
+        text: "Sorry, I couldn't analyze the image. Please try again.",
+        timestamp: new Date(),
+      };
+      addMessage(errorMessage);
+    }
   };
 
   return (

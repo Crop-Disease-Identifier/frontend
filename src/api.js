@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://backend-production-4c9e.up.railway.app/'; // Change to your backend URL
-
+const BASE_URL = 'https://backend-production-4c9e.up.railway.app/'; 
+// const BASE_URL="http://127.0.0.1:8000";
 const api = axios.create({
   baseURL: BASE_URL,
   withCredentials: false, // Changed to false to avoid CORS issues with wildcard origins
@@ -38,9 +38,30 @@ export const logout = () => api.post('/auth/logout');
 export const googleCallback = (code) => api.get(`/auth/google/callback?code=${code}`);
 
 // UPLOAD
-export const uploadImage = (formData) => api.post('/detection/upload', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' },
-});
+export const uploadImage = (formData) => {
+  console.log('Uploading image to backend...');
+  console.log('Target URL:', `${BASE_URL}/detection/upload`);
+  for (let pair of formData.entries()) {
+    console.log('FormData:', pair[0], pair[1]);
+  }
+  // Do NOT set Content-Type manually for FormData, let the browser set it with the boundary
+  return api.post('/detection/upload', formData).then(res => {
+    console.log('Upload successful:', res.data);
+    return res;
+  }).catch(err => {
+    console.error('Upload error:', err.message);
+    if (err.response) {
+        console.error('Response status:', err.response.status);
+        console.error('Response data:', err.response.data);
+    } else if (err.request) {
+        console.error('No response received. Request was made but no response.');
+        console.error('Request details:', err.request);
+    } else {
+        console.error('Error setting up request:', err.message);
+    }
+    throw err;
+  });
+};
 
 // CHAT
 export const sendChat = (data) => api.post('/chat', data);

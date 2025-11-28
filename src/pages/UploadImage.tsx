@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function UploadImage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [dragActive, setDragActive] = useState(false);
@@ -38,6 +39,7 @@ export default function UploadImage() {
   const handleFile = (file: File) => {
     if (!validateFile(file)) return;
 
+    setSelectedFile(file);
     const reader = new FileReader();
     reader.onloadend = () => {
       setSelectedImage(reader.result as string);
@@ -72,6 +74,7 @@ export default function UploadImage() {
 
   const handleRemove = () => {
     setSelectedImage(null);
+    setSelectedFile(null);
     setFileName('');
     setError('');
     if (fileInputRef.current) {
@@ -80,28 +83,35 @@ export default function UploadImage() {
   };
 
   const handleAnalyze = async () => {
-    if (!selectedImage || !fileName) return;
+    if (!selectedFile) return;
     setLoading(true);
     setError('');
     setResult(null);
     try {
-      // Convert base64 to File object if needed
-      const arr = selectedImage.split(',');
-      const mime = arr[0].match(/:(.*?);/)[1];
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-      }
-      const file = new File([u8arr], fileName, { type: mime });
+      console.log("Starting upload...");
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', selectedFile);
+      
+      // Debug: Try direct fetch to see if it works
+      /*
+      const response = await fetch('http://127.0.0.1:8000/detection/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      console.log("Fetch response:", data);
+      */
+
       const res = await uploadImage(formData);
+      console.log("Axios response:", res);
       setResult(res.data);
-      // Optionally navigate or show result
+      
+      // Show result in UI for debugging
+      alert(`Analysis Complete: ${JSON.stringify(res.data)}`);
+      
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Image analysis failed');
+      console.error("Analysis error:", err);
+      setError(err.response?.data?.message || err.message || 'Image analysis failed');
     } finally {
       setLoading(false);
     }
