@@ -260,7 +260,7 @@ function DashboardContent() {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Describe your plant's condition..."
-              className="flex-1 min-h-[44px] max-h-32 resize-none border-green-200 dark:border-green-700 focus:border-green-500 dark:focus:border-green-500 dark:bg-gray-900 dark:text-white"
+              className="flex-1 min-h-[44px] max-h-32 resize-none border-green-200 dark:border-green-700 focus:border-green-500 dark:focus:border-green-500 dark:bg-gray-900 dark:text-white placeholder:text-sm"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
